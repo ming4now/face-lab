@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#10151a">
+  <meta name="description" content="用摄像头驱动三维人脸和二维角色，实时观察表情跟踪与性能。">
+  <title>表情实验室 · Face Lab</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23c8fa78'/%3E%3Cpath d='M9 12v3m14-3v3M9 21q7 7 14 0' fill='none' stroke='%2310151a' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./readability.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+</head>
+<body>
+  <header class="topbar"><div class="brand"><span class="brand-mark" aria-hidden="true">◡</span><div><h1>表情实验室</h1><span class="eyebrow">FACE LAB / 单人跟踪测试</span></div></div><span class="local-note">画面与表情识别在本机处理</span></header>
+  <main>
+    <section class="workspace" aria-label="摄像头与角色测试">
+      <div class="stage-toolbar"><div class="avatar-tabs" role="group" aria-label="角色外观"><button class="avatar-tab active" data-avatar="blob" aria-pressed="true">布丁精灵</button><button class="avatar-tab" data-avatar="frog" aria-pressed="false">呆呆蛙</button><button class="avatar-tab" data-avatar="face" aria-pressed="false">三维人脸</button></div><span id="mode-badge" class="badge">等待开始</span></div>
+      <div class="stage-body">
+        <div id="avatar-stage" class="avatar-stage"><canvas id="avatar-2d" aria-label="跟随表情变化的二维角色"></canvas><div id="avatar-3d" hidden aria-label="跟随表情变化的三维人脸"></div><div class="stage-label"><span id="avatar-title">布丁精灵</span><span id="avatar-hint">张嘴、眨眼、抬眉，看看它如何回应。</span></div><div id="model-message" class="model-message" hidden role="status"></div></div>
+        <div class="camera-pane"><div class="camera-caption"><span>摄像头原画面</span><span id="camera-size">—</span></div><div class="camera-view"><video id="camera" autoplay playsinline muted></video><div id="camera-placeholder"><span class="camera-icon" aria-hidden="true">◎</span><p>接上摄像头，准备见面</p><small>开始后可选择内置或外接设备</small></div><span id="tracking-status" class="tracking-status" hidden>寻找人脸…</span></div><div class="expression-list" id="expression-list" aria-label="实时表情强度"></div><p class="camera-note">自然表情也会有少量波动。左右按你的脸部命名。</p></div>
+      </div>
+      <div class="metrics" aria-label="实时性能"><div><span>识别频率</span><strong id="metric-track">—</strong><small>次 / 秒</small></div><div><span>单次识别</span><strong id="metric-infer">—</strong><small>毫秒 · 最近均值</small></div><div><span>渲染帧率</span><strong id="metric-render">—</strong><small>帧 / 秒</small></div><div><span>本次运行</span><strong id="metric-time">00:00</strong><small id="metric-engine">尚未启动识别</small></div></div>
+    </section>
+    <aside class="settings" aria-label="测试设置">
+      <div class="settings-heading"><h2>开始测试</h2><span>01 / CAMERA</span></div>
+      <label class="field">摄像头<select id="device"><option value="">默认摄像头</option></select></label>
+      <div class="field-pair"><label class="field">采集清晰度<select id="resolution"><option value="480">480p · 推荐</option><option value="720">720p</option><option value="360">360p · 省电</option></select></label><label class="field">识别频率上限<select id="rate"><option value="30" selected>30 次 / 秒</option><option value="24">24 次 / 秒</option><option value="15">15 次 / 秒</option></select></label></div>
+      <button id="start" class="primary" type="button">开启摄像头</button><button id="demo" class="secondary" type="button">先看演示动作</button>
+      <p id="status" class="status" role="status" aria-live="polite">允许摄像头访问后，即可开始跟踪。</p>
+      <div class="divider"></div><div class="settings-heading"><h2>调整表现</h2><span>02 / EXPRESSION</span></div>
+      <label class="range-field" for="gain"><span>动作夸张度 <output id="gain-value">1.3×</output></span><input id="gain" type="range" min="0.7" max="2" step="0.1" value="1.3"></label>
+      <label class="range-field" for="smoothing"><span>平滑程度 <output id="smoothing-value">适中</output></span><input id="smoothing" type="range" min="0" max="0.85" step="0.05" value="0.35"></label>
+      <label class="switch-row"><span>镜像显示</span><input id="mirror" type="checkbox" checked role="switch"></label>
+      <div class="tip"><strong>试试这组动作</strong><p>张嘴 → 微笑 → 抬眉 → 左右眨眼 → 轻轻转头</p></div>
+      <details><summary>这些数字代表什么？</summary><p>识别耗时仅统计模型调用，不等于完整的动作显示延迟。渲染帧率也不等于识别频率。浏览器页面无法准确读取整机 CPU / GPU 占用。</p></details>
+    </aside>
+  </main>
+  <footer><span>FACE LAB <span class="footer-dot">/</span> 摄像头画面不上传、不录制</span><a href="./credits.html" target="_blank" rel="noopener">模型与开源说明 ↗</a></footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
