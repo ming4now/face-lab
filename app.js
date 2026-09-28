@@ -3,6 +3,7 @@ import {Avatar2D} from './avatar2d.js';
 import {Tracker} from './tracker.js';
 import {isShape,isThreeDimensional} from './shape-motion.js';
 import {CalibrationController} from './calibration-ui.js';
+import {NoseLab} from './nose-lab.js';
 const $=id=>document.getElementById(id),video=$('camera'),canvas=$('avatar-2d'),avatar2d=new Avatar2D(canvas);
 const names={jelly:'软糖团',polygon:'折纸多边形',crystal:'呼吸晶体',knot:'扭结环',finger:'手指涂鸦',blob:'布丁精灵',frog:'呆呆蛙',face:'三维人脸'},labels=['张嘴','微笑','抬眉','左眼闭合','右眼闭合','嘟嘴','左侧皱鼻','右侧皱鼻'];
 const hints={jelly:'二维软体 · 用表情揉动一团软糖',polygon:'二维多边形 · 用表情拉伸、折动轮廓',crystal:'三维多面体 · 张嘴膨胀，转头观察不同切面',knot:'三维扭结 · 用表情挤压、拉伸一条闭合曲线',finger:'画在指尖的小表情 · 眨眼、张嘴、抬眉，跟着你动'};
@@ -13,6 +14,7 @@ let noseCurrent=[null,null],nosePeak=[null,null];
 let startedAt=0,lastFrame=performance.now(),lastMetrics=lastFrame,lastMeter=0,lastPaint=0,renderCount=0,resultCount=0,samples=[],engineName='',lastResultAt=0;
 const placeholder='<span class="camera-icon" aria-hidden="true">◎</span><p>接上摄像头，准备见面</p><small>开始后可选择内置或外接设备</small>';
 const calibration=new CalibrationController({mount:$('calibration-mount'),getContext:()=>({ready:mode==='camera'&&phase==='running',found,fresh:lastResultAt>0&&performance.now()-lastResultAt<800,cameraId:stream?.getVideoTracks()[0]?.getSettings()?.deviceId??'',stream,mirror}),onChange:()=>{if(mode==='camera')target=found?calibration.apply(raw):neutral();}});
+const noseLab=new NoseLab({mount:$('nose-lab-mount'),video,getContext:()=>({fresh:mode==='camera'&&phase==='running'&&found&&lastResultAt>0&&performance.now()-lastResultAt<600})});
 function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);$('status').setAttribute('role',error?'alert':'status');}
 function resetMetrics(){lastMetrics=performance.now();resultCount=0;renderCount=0;samples=[];$('metric-track').textContent='—';$('metric-infer').textContent='—';$('metric-render').textContent='—';$('metric-time').textContent='00:00';}
 function updateNoseDiagnostics(){
@@ -34,6 +36,7 @@ function updateUI(){
   calibration.sync();
 }
 function release(){
+  noseLab.stop('先开启摄像头并保持正脸，再开启实验。');
   generation++;tracker?.stop();tracker=null;if(stream)for(const track of stream.getTracks()){track.onended=null;track.stop();}
   stream=null;video.pause();video.srcObject=null;found=false;raw=neutral();target=neutral();noseCurrent=[null,null];nosePeak=[null,null];engineName='';lastResultAt=0;$('camera-size').textContent='—';calibration.cancel('摄像头已停止，本次校准未保存。');
 }
@@ -54,7 +57,7 @@ async function startCamera(){
     const active=new Tracker(video,{
       onProgress:message=>{if(ticket===generation)status(message);},
       onFatal:message=>{if(ticket===generation){stop();status(message,true);}},
-      onResult:result=>{if(ticket!==generation)return;found=result.found;raw={blend:result.blend,pose:result.pose};noseCurrent=found?(result.noseScores??[null,null]):[null,null];noseCurrent.forEach((value,i)=>{if(Number.isFinite(value))nosePeak[i]=Math.max(nosePeak[i]??0,value);});lastResultAt=performance.now();calibration.receive(result,lastResultAt);target=found?calibration.apply(raw):neutral();resultCount++;samples.push(result.inferenceMs);if(samples.length>30)samples.shift();$('tracking-status').textContent=found?'已跟踪到人脸':'请将脸移入画面';$('tracking-status').style.color=found?'var(--accent)':'#ffc977';}
+      onResult:result=>{if(ticket!==generation)return;found=result.found;raw={blend:result.blend,pose:result.pose};noseCurrent=found?(result.noseScores??[null,null]):[null,null];noseCurrent.forEach((value,i)=>{if(Number.isFinite(value))nosePeak[i]=Math.max(nosePeak[i]??0,value);});lastResultAt=performance.now();noseLab.receiveFace(result,lastResultAt);calibration.receive(result,lastResultAt);target=found?calibration.apply(raw):neutral();resultCount++;samples.push(result.inferenceMs);if(samples.length>30)samples.shift();$('tracking-status').textContent=found?'已跟踪到人脸':'请将脸移入画面';$('tracking-status').style.color=found?'var(--accent)':'#ffc977';}
     });
     tracker=active;tracker.rate=Number($('rate').value);const engine=await active.start();if(ticket!==generation)return;
     engineName=engine;startedAt=performance.now();phase='running';resetMetrics();updateUI();status('正在跟踪。可直接切换角色、设备或动作表现。');
@@ -84,6 +87,7 @@ $('gain').addEventListener('input',event=>{gain=Number(event.target.value);$('ga
 $('smoothing').addEventListener('input',event=>{smoothing=Number(event.target.value);$('smoothing-value').textContent=smoothing===0?'关闭':smoothing<.3?'轻微':smoothing<.6?'适中':'较强';});
 $('mirror').addEventListener('change',event=>{mirror=event.target.checked;updateUI();});navigator.mediaDevices?.addEventListener('devicechange',refreshDevices);void refreshDevices();window.addEventListener('pagehide',()=>release());
 function paint(now){
+  noseLab.paint(now);
   const dt=now-lastFrame;lastFrame=now;if(mode==='demo')target=demoState((now-startedAt)/1000,$('demo-action').value);
   if(mode==='camera'&&phase==='running'&&lastResultAt&&now-lastResultAt>800){target=neutral();found=false;$('tracking-status').textContent='等待新的摄像头画面…';}
   smoothState(display,target,dt,smoothing);

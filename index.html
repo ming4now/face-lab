@@ -7,6 +7,7 @@
   <title>表情实验室 · Face Lab</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23c8fa78'/%3E%3Cpath d='M9 12v3m14-3v3M9 21q7 7 14 0' fill='none' stroke='%2310151a' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./readability.css"><link rel="stylesheet" href="./calibration.css">
+  <link rel="stylesheet" href="./nose-lab.css">
   <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head>
 <body>
@@ -32,6 +33,7 @@
       <label id="demo-controls" class="field demo-controls" hidden>演示动作<select id="demo-action"><option value="auto">自动轮播所有动作</option><option value="open">只看张嘴</option><option value="blink">只看闭眼</option><option value="smile">只看微笑</option><option value="head">只看转头</option></select></label>
       <p id="status" class="status" role="status" aria-live="polite">允许摄像头访问后，即可开始跟踪。</p>
       <div id="calibration-mount"></div>
+      <div id="nose-lab-mount"></div>
       <div class="divider"></div><div class="settings-heading"><h2>调整表现</h2><span>02 / EXPRESSION</span></div>
       <label class="range-field" for="gain"><span>动作夸张度 <output id="gain-value">1.3×</output></span><input id="gain" type="range" min="0.7" max="2" step="0.1" value="1.3"></label>
       <label class="range-field" for="smoothing"><span>平滑程度 <output id="smoothing-value">适中</output></span><input id="smoothing" type="range" min="0" max="0.85" step="0.05" value="0.35"></label>
