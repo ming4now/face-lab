@@ -1,5 +1,5 @@
 export const clamp=(x,min=0,max=1)=>Math.max(min,Math.min(max,Number.isFinite(x)?x:0));
-export const blendKeys=['jawOpen','mouthSmileLeft','mouthSmileRight','eyeBlinkLeft','eyeBlinkRight','eyeWideLeft','eyeWideRight','browInnerUp','browOuterUpLeft','browOuterUpRight','browDownLeft','browDownRight','mouthPucker','mouthFunnel','mouthFrownLeft','mouthFrownRight','eyeLookInLeft','eyeLookInRight','eyeLookOutLeft','eyeLookOutRight','eyeLookUpLeft','eyeLookUpRight','eyeLookDownLeft','eyeLookDownRight'];
+export const blendKeys=['jawOpen','mouthSmileLeft','mouthSmileRight','eyeBlinkLeft','eyeBlinkRight','eyeWideLeft','eyeWideRight','browInnerUp','browOuterUpLeft','browOuterUpRight','browDownLeft','browDownRight','mouthPucker','mouthFunnel','mouthFrownLeft','mouthFrownRight','eyeLookInLeft','eyeLookInRight','eyeLookOutLeft','eyeLookOutRight','eyeLookUpLeft','eyeLookUpRight','eyeLookDownLeft','eyeLookDownRight','noseSneerLeft','noseSneerRight'];
 export const neutral=()=>({blend:Object.fromEntries(blendKeys.map(k=>[k,0])),pose:{pitch:0,yaw:0,roll:0}});
 export function parseResult(result){
   if(!result.faceLandmarks?.length)return {found:false,...neutral()};
@@ -15,7 +15,7 @@ export function smoothState(current,target,dt,smoothing){
   for(const key of ['yaw','pitch','roll'])current.pose[key]+=(target.pose[key]-current.pose[key])*alpha;
   return current;
 }
-export function expressionValues(b){return [b.jawOpen??0,((b.mouthSmileLeft??0)+(b.mouthSmileRight??0))/2,Math.max(b.browInnerUp??0,b.browOuterUpLeft??0,b.browOuterUpRight??0),b.eyeBlinkLeft??0,b.eyeBlinkRight??0,b.mouthPucker??0];}
+export function expressionValues(b){return [b.jawOpen??0,((b.mouthSmileLeft??0)+(b.mouthSmileRight??0))/2,Math.max(b.browInnerUp??0,b.browOuterUpLeft??0,b.browOuterUpRight??0),b.eyeBlinkLeft??0,b.eyeBlinkRight??0,b.mouthPucker??0,b.noseSneerLeft??0,b.noseSneerRight??0];}
 export function demoState(seconds,action='auto'){
   if(action!=='auto'){
     const s=neutral(),pulse=(1-Math.cos(seconds*Math.PI))/2;

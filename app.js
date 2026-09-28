@@ -4,7 +4,7 @@ import {Tracker} from './tracker.js';
 import {isShape,isThreeDimensional} from './shape-motion.js';
 import {CalibrationController} from './calibration-ui.js';
 const $=id=>document.getElementById(id),video=$('camera'),canvas=$('avatar-2d'),avatar2d=new Avatar2D(canvas);
-const names={jelly:'软糖团',polygon:'折纸多边形',crystal:'呼吸晶体',knot:'扭结环',finger:'手指涂鸦',blob:'布丁精灵',frog:'呆呆蛙',face:'三维人脸'},labels=['张嘴','微笑','抬眉','左眼闭合','右眼闭合','嘟嘴'];
+const names={jelly:'软糖团',polygon:'折纸多边形',crystal:'呼吸晶体',knot:'扭结环',finger:'手指涂鸦',blob:'布丁精灵',frog:'呆呆蛙',face:'三维人脸'},labels=['张嘴','微笑','抬眉','左眼闭合','右眼闭合','嘟嘴','左侧皱鼻','右侧皱鼻'];
 const hints={jelly:'二维软体 · 用表情揉动一团软糖',polygon:'二维多边形 · 用表情拉伸、折动轮廓',crystal:'三维多面体 · 张嘴膨胀，转头观察不同切面',knot:'三维扭结 · 用表情挤压、拉伸一条闭合曲线',finger:'画在指尖的小表情 · 眨眼、张嘴、抬眉，跟着你动'};
 const bars=labels.map(label=>{const row=document.createElement('div');row.className='expression-line';row.innerHTML=`<span class="expression-label">${label}</span><div class="expression-track"><div class="expression-fill"></div></div><span class="expression-number">—</span>`;$('expression-list').append(row);return {fill:row.querySelector('.expression-fill'),number:row.querySelector('.expression-number')};});
 let mode='idle',phase='idle',kind='finger',generation=0,avatarGeneration=0,stream=null,tracker=null,avatar3d=null,avatar3dPromise=null;
@@ -80,7 +80,7 @@ function paint(now){
   smoothState(display,target,dt,smoothing);
   calibration.paint(display,{gain,mirror});
   if(mode!=='idle'||now-lastPaint>80){const options={kind,gain,mirror};if(isThreeDimensional(kind))avatar3d?.render(display,options);else avatar2d.draw(display,options);lastPaint=now;if(mode!=='idle'&&(!isThreeDimensional(kind)||avatar3d))renderCount++;}
-  if(now-lastMeter>100){expressionValues(display.blend).forEach((value,i)=>{bars[i].fill.style.width=(clamp(value)*100).toFixed(1)+'%';bars[i].number.textContent=mode==='idle'?'—':Math.round(clamp(value)*100);});lastMeter=now;}
+  if(now-lastMeter>100){expressionValues(display.blend).forEach((value,i)=>{bars[i].fill.style.width=(clamp(value)*100).toFixed(1)+'%';bars[i].number.textContent=mode==='idle'?'—':i>=6?(clamp(value)*100).toFixed(1):Math.round(clamp(value)*100);});lastMeter=now;}
   if(now-lastMetrics>=1000){const duration=(now-lastMetrics)/1000;if(mode!=='idle'){$('metric-render').textContent=String(Math.round(renderCount/duration));if(mode==='camera'&&phase==='running'){$('metric-track').textContent=(resultCount/duration).toFixed(1);$('metric-infer').textContent=samples.length?(samples.reduce((a,b)=>a+b,0)/samples.length).toFixed(1):'—';}if(phase==='running'){const seconds=Math.floor((now-startedAt)/1000);$('metric-time').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');}}renderCount=0;resultCount=0;lastMetrics=now;}
   requestAnimationFrame(paint);
 }

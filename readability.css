@@ -2,8 +2,8 @@
 .field,.range-field,.switch-row,select{font-size:14px}
 .status,.tip strong,.tip p,details{font-size:13px}
 .camera-note,#camera-placeholder small,.stage-label>span:last-child,.metrics small,footer{font-size:12px}
-.expression-line{font-size:13px}
-@media(max-width:570px){select{font-size:16px}.metrics{grid-template-columns:1fr 1fr;row-gap:16px}.metrics>div:nth-child(2){border:0}.metrics span{font-size:12px}.metrics small{font-size:11px}.expression-line{font-size:12px}.stage-label>span:last-child{font-size:12px}}
+.expression-line{font-size:13px;grid-template-columns:64px 1fr 38px}
+@media(max-width:570px){select{font-size:16px}.metrics{grid-template-columns:1fr 1fr;row-gap:16px}.metrics>div:nth-child(2){border:0}.metrics span{font-size:12px}.metrics small{font-size:11px}.expression-line{font-size:12px;grid-template-columns:56px 1fr 36px}.stage-label>span:last-child{font-size:12px}}
 .stage-toolbar{align-items:flex-start;flex-wrap:wrap}
 .avatar-groups{display:grid;gap:8px;min-width:0;flex:1}
 .avatar-row{display:flex;align-items:flex-start;gap:8px}
