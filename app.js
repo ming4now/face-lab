@@ -2,14 +2,16 @@ import {neutral,smoothState,demoState,expressionValues,cameraConstraints,cameraE
 import {Avatar2D} from './avatar2d.js';
 import {Tracker} from './tracker.js';
 import {isShape,isThreeDimensional} from './shape-motion.js';
+import {CalibrationController} from './calibration-ui.js';
 const $=id=>document.getElementById(id),video=$('camera'),canvas=$('avatar-2d'),avatar2d=new Avatar2D(canvas);
 const names={jelly:'软糖团',polygon:'折纸多边形',crystal:'呼吸晶体',knot:'扭结环',finger:'手指涂鸦',blob:'布丁精灵',frog:'呆呆蛙',face:'三维人脸'},labels=['张嘴','微笑','抬眉','左眼闭合','右眼闭合','嘟嘴'];
 const hints={jelly:'二维软体 · 用表情揉动一团软糖',polygon:'二维多边形 · 用表情拉伸、折动轮廓',crystal:'三维多面体 · 张嘴膨胀，转头观察不同切面',knot:'三维扭结 · 用表情挤压、拉伸一条闭合曲线',finger:'画在指尖的小表情 · 眨眼、张嘴、抬眉，跟着你动'};
 const bars=labels.map(label=>{const row=document.createElement('div');row.className='expression-line';row.innerHTML=`<span class="expression-label">${label}</span><div class="expression-track"><div class="expression-fill"></div></div><span class="expression-number">—</span>`;$('expression-list').append(row);return {fill:row.querySelector('.expression-fill'),number:row.querySelector('.expression-number')};});
 let mode='idle',phase='idle',kind='finger',generation=0,avatarGeneration=0,stream=null,tracker=null,avatar3d=null,avatar3dPromise=null;
-let target=neutral(),display=neutral(),gain=1.3,smoothing=.35,mirror=true,found=false;
+let raw=neutral(),target=neutral(),display=neutral(),gain=1.3,smoothing=.35,mirror=true,found=false;
 let startedAt=0,lastFrame=performance.now(),lastMetrics=lastFrame,lastMeter=0,lastPaint=0,renderCount=0,resultCount=0,samples=[],engineName='',lastResultAt=0;
 const placeholder='<span class="camera-icon" aria-hidden="true">◎</span><p>接上摄像头，准备见面</p><small>开始后可选择内置或外接设备</small>';
+const calibration=new CalibrationController({mount:$('calibration-mount'),getContext:()=>({ready:mode==='camera'&&phase==='running',found,fresh:lastResultAt>0&&performance.now()-lastResultAt<800,cameraId:stream?.getVideoTracks()[0]?.getSettings()?.deviceId??'',stream,mirror}),onChange:()=>{if(mode==='camera')target=found?calibration.apply(raw):neutral();}});
 function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);$('status').setAttribute('role',error?'alert':'status');}
 function resetMetrics(){lastMetrics=performance.now();resultCount=0;renderCount=0;samples=[];$('metric-track').textContent='—';$('metric-infer').textContent='—';$('metric-render').textContent='—';$('metric-time').textContent='00:00';}
 function updateUI(){
@@ -20,10 +22,11 @@ function updateUI(){
   $('mode-badge').className='badge'+(mode==='demo'?' demo':camera?' live':'');
   $('camera-placeholder').hidden=!!stream;$('tracking-status').hidden=!stream;
   $('metric-engine').textContent=mode==='demo'?'模拟动作 · 无模型推理':engineName?engineName+' · 本机识别':'尚未启动识别';video.style.transform=mirror?'scaleX(-1)':'none';
+  calibration.sync();
 }
 function release(){
   generation++;tracker?.stop();tracker=null;if(stream)for(const track of stream.getTracks()){track.onended=null;track.stop();}
-  stream=null;video.pause();video.srcObject=null;found=false;target=neutral();engineName='';lastResultAt=0;$('camera-size').textContent='—';
+  stream=null;video.pause();video.srcObject=null;found=false;raw=neutral();target=neutral();engineName='';lastResultAt=0;$('camera-size').textContent='—';calibration.cancel('摄像头已停止，本次校准未保存。');
 }
 function stop(message='摄像头已关闭。可以切换设备后重新开始。'){release();mode='idle';phase='idle';$('camera-placeholder').innerHTML=placeholder;resetMetrics();updateUI();status(message);}
 async function refreshDevices(){
@@ -42,7 +45,7 @@ async function startCamera(){
     const active=new Tracker(video,{
       onProgress:message=>{if(ticket===generation)status(message);},
       onFatal:message=>{if(ticket===generation){stop();status(message,true);}},
-      onResult:result=>{if(ticket!==generation)return;found=result.found;target={blend:result.blend,pose:result.pose};lastResultAt=performance.now();resultCount++;samples.push(result.inferenceMs);if(samples.length>30)samples.shift();$('tracking-status').textContent=found?'已跟踪到人脸':'请将脸移入画面';$('tracking-status').style.color=found?'var(--accent)':'#ffc977';}
+      onResult:result=>{if(ticket!==generation)return;found=result.found;raw={blend:result.blend,pose:result.pose};lastResultAt=performance.now();calibration.receive(result,lastResultAt);target=found?calibration.apply(raw):neutral();resultCount++;samples.push(result.inferenceMs);if(samples.length>30)samples.shift();$('tracking-status').textContent=found?'已跟踪到人脸':'请将脸移入画面';$('tracking-status').style.color=found?'var(--accent)':'#ffc977';}
     });
     tracker=active;tracker.rate=Number($('rate').value);const engine=await active.start();if(ticket!==generation)return;
     engineName=engine;startedAt=performance.now();phase='running';resetMetrics();updateUI();status('正在跟踪。可直接切换角色、设备或动作表现。');
@@ -75,6 +78,7 @@ function paint(now){
   const dt=now-lastFrame;lastFrame=now;if(mode==='demo')target=demoState((now-startedAt)/1000,$('demo-action').value);
   if(mode==='camera'&&phase==='running'&&lastResultAt&&now-lastResultAt>800){target=neutral();found=false;$('tracking-status').textContent='等待新的摄像头画面…';}
   smoothState(display,target,dt,smoothing);
+  calibration.paint(display,{gain,mirror});
   if(mode!=='idle'||now-lastPaint>80){const options={kind,gain,mirror};if(isThreeDimensional(kind))avatar3d?.render(display,options);else avatar2d.draw(display,options);lastPaint=now;if(mode!=='idle'&&(!isThreeDimensional(kind)||avatar3d))renderCount++;}
   if(now-lastMeter>100){expressionValues(display.blend).forEach((value,i)=>{bars[i].fill.style.width=(clamp(value)*100).toFixed(1)+'%';bars[i].number.textContent=mode==='idle'?'—':Math.round(clamp(value)*100);});lastMeter=now;}
   if(now-lastMetrics>=1000){const duration=(now-lastMetrics)/1000;if(mode!=='idle'){$('metric-render').textContent=String(Math.round(renderCount/duration));if(mode==='camera'&&phase==='running'){$('metric-track').textContent=(resultCount/duration).toFixed(1);$('metric-infer').textContent=samples.length?(samples.reduce((a,b)=>a+b,0)/samples.length).toFixed(1):'—';}if(phase==='running'){const seconds=Math.floor((now-startedAt)/1000);$('metric-time').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');}}renderCount=0;resultCount=0;lastMetrics=now;}

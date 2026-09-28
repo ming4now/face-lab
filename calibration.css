@@ -1,0 +1,24 @@
+.calibration-panel{margin-top:20px;padding:17px 15px;border:1px solid #3c504b;border-radius:12px;background:#19262a}
+.calibration-panel .settings-heading{margin-bottom:9px}.calibration-panel .settings-heading>span{letter-spacing:0;color:#9db4a4;font-size:11px}
+.calibration-status{font-size:12px;color:#c7d9cf;line-height:1.8;margin:0 0 12px}
+.calibration-buttons{display:flex;gap:8px}.calibration-buttons button{margin:0;font-size:13px;min-height:40px;padding:9px 8px;flex:1}
+.calibration-panel .switch-row{margin:13px 0 0}.calibration-privacy{font-size:11px;color:#91a59d;line-height:1.7;margin:12px 0 0}
+.calibration-buttons button:disabled{cursor:not-allowed}
+#calibration-dialog{width:min(590px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:0;border:1px solid #496058;border-radius:18px;background:#172328;color:#eef3f6;box-shadow:0 24px 100px #0008;overflow-y:auto}
+#calibration-dialog::backdrop{background:#081014bd;backdrop-filter:blur(5px)}
+.calibration-dialog-body{padding:22px 24px 10px}.calibration-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.calibration-eyebrow{margin:0 0 4px;font-size:10px;letter-spacing:.12em;color:#a4beab}.calibration-header h2{margin:0;font-size:21px}.calibration-header>span{font-size:13px;color:var(--accent)}
+.calibration-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:0;margin:20px 0 16px;list-style:none;font-size:11px;color:#9aaba4}
+.calibration-steps li{border-top:3px solid #35443f;padding-top:7px;text-align:center}.calibration-steps li.current{color:var(--accent);border-color:var(--accent)}.calibration-steps li.done{border-color:#6ca77e;color:#b8d6be}
+.calibration-views{display:grid;grid-template-columns:1fr 1fr;gap:12px}.calibration-views>div{position:relative;min-width:0;height:175px;overflow:hidden;background:#101a20;border:1px solid #30463e;border-radius:12px}
+.calibration-views video,.calibration-views canvas{display:block;width:100%;height:100%;object-fit:cover}.calibration-views>div:last-child{background:radial-gradient(ellipse,#2e4440,#172a2b)}
+.calibration-views span{position:absolute;bottom:5px;left:6px;right:6px;text-align:center;font-size:10px;color:#d4e6da;text-shadow:0 1px 4px #000;background:#15241db0;border-radius:5px;padding:2px}
+#calibration-step-title{font-size:19px;margin:17px 0 5px}#calibration-instruction{font-size:14px;color:#c6d5ce;margin:0;min-height:44px;line-height:1.65}
+.calibration-progress-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 8px;min-height:38px}
+#calibration-message{font-size:13px;color:#e3d6b7}#calibration-countdown{font-size:20px;color:var(--accent);white-space:nowrap;font-variant-numeric:tabular-nums}
+#calibration-progress{display:block;width:100%;height:7px;accent-color:var(--accent);border:0;border-radius:5px;overflow:hidden;background:#33413a}
+#calibration-progress::-webkit-progress-bar{background:#33413a}#calibration-progress::-webkit-progress-value{background:var(--accent)}
+.calibration-detail{font-size:11px;color:#96aaa0;line-height:1.65;margin:10px 0 4px}
+.calibration-actions{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;padding:14px 24px 18px;background:#172328;border-top:1px solid #30423a}
+.calibration-actions button{width:auto;margin:0;min-width:74px;font-size:13px}.calibration-actions .primary{min-width:116px}
+@media(max-width:570px){.calibration-dialog-body{padding:16px 16px 8px}.calibration-header h2{font-size:19px}.calibration-views{gap:8px}.calibration-views>div{height:140px}.calibration-steps{font-size:10px;gap:4px;margin:16px 0 12px}.calibration-actions{padding:12px 14px}.calibration-actions button{padding:10px 8px;min-width:64px}.calibration-actions .primary{min-width:105px}.calibration-panel{margin-top:16px}}
