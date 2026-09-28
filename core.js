@@ -16,7 +16,15 @@ export function smoothState(current,target,dt,smoothing){
   return current;
 }
 export function expressionValues(b){return [b.jawOpen??0,((b.mouthSmileLeft??0)+(b.mouthSmileRight??0))/2,Math.max(b.browInnerUp??0,b.browOuterUpLeft??0,b.browOuterUpRight??0),b.eyeBlinkLeft??0,b.eyeBlinkRight??0,b.mouthPucker??0];}
-export function demoState(seconds){
+export function demoState(seconds,action='auto'){
+  if(action!=='auto'){
+    const s=neutral(),pulse=(1-Math.cos(seconds*Math.PI))/2;
+    if(action==='open')s.blend.jawOpen=pulse*.85;
+    if(action==='blink'){s.blend.eyeBlinkLeft=s.blend.eyeBlinkRight=pulse;}
+    if(action==='smile')s.blend.mouthSmileLeft=s.blend.mouthSmileRight=pulse*.85;
+    if(action==='head'){s.pose.yaw=Math.sin(seconds*1.2)*.65;s.pose.pitch=Math.sin(seconds*.8)*.35;s.pose.roll=Math.sin(seconds)*.35;}
+    return s;
+  }
   const s=neutral(),cycle=seconds%12;
   s.pose.yaw=Math.sin(seconds*.75)*.28;s.pose.roll=Math.sin(seconds*.8)*.1;s.pose.pitch=Math.sin(seconds*.45)*.08;
   s.blend.jawOpen=cycle<3?Math.pow(Math.max(0,Math.sin(cycle/3*Math.PI)),2)*.8:0;
