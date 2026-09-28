@@ -6,3 +6,5 @@
 .nose-lab-actions{display:grid;grid-template-columns:1fr auto;gap:6px}.nose-lab-actions .secondary{padding:9px 7px;font-size:11px;margin:0}
 .nose-lab-metrics{font-size:11px;line-height:1.6;color:var(--accent);font-variant-numeric:tabular-nums}
 #nose-lab-mount{min-width:0;grid-column:1/-1}#nose-lab-mount button:disabled{opacity:.45;cursor:not-allowed}
+.model-choice{grid-column:1/-1;min-width:0;margin-bottom:14px;padding:12px;border:1px solid var(--border);border-radius:9px;background:#182329}.model-choice .field{margin-bottom:0}.model-choice .nose-help{margin:8px 0 0}
+#nose-lab-mount[hidden],#nose-retry[hidden]{display:none}

@@ -4,6 +4,7 @@ import {Tracker} from './tracker.js';
 import {isShape,isThreeDimensional} from './shape-motion.js';
 import {CalibrationController} from './calibration-ui.js';
 import {NoseLab} from './nose-lab.js';
+import {recognitionModels,recognitionModel} from './recognition-models.js';
 const $=id=>document.getElementById(id),video=$('camera'),canvas=$('avatar-2d'),avatar2d=new Avatar2D(canvas);
 const names={jelly:'软糖团',polygon:'折纸多边形',crystal:'呼吸晶体',knot:'扭结环',finger:'手指涂鸦',blob:'布丁精灵',frog:'呆呆蛙',face:'三维人脸'},labels=['张嘴','微笑','抬眉','左眼闭合','右眼闭合','嘟嘴','左侧皱鼻','右侧皱鼻'];
 const hints={jelly:'二维软体 · 用表情揉动一团软糖',polygon:'二维多边形 · 用表情拉伸、折动轮廓',crystal:'三维多面体 · 张嘴膨胀，转头观察不同切面',knot:'三维扭结 · 用表情挤压、拉伸一条闭合曲线',finger:'画在指尖的小表情 · 眨眼、张嘴、抬眉，跟着你动'};
@@ -14,7 +15,12 @@ let noseCurrent=[null,null],nosePeak=[null,null];
 let startedAt=0,lastFrame=performance.now(),lastMetrics=lastFrame,lastMeter=0,lastPaint=0,renderCount=0,resultCount=0,samples=[],engineName='',lastResultAt=0;
 const placeholder='<span class="camera-icon" aria-hidden="true">◎</span><p>接上摄像头，准备见面</p><small>开始后可选择内置或外接设备</small>';
 const calibration=new CalibrationController({mount:$('calibration-mount'),getContext:()=>({ready:mode==='camera'&&phase==='running',found,fresh:lastResultAt>0&&performance.now()-lastResultAt<800,cameraId:stream?.getVideoTracks()[0]?.getSettings()?.deviceId??'',stream,mirror}),onChange:()=>{if(mode==='camera')target=found?calibration.apply(raw):neutral();}});
-const noseLab=new NoseLab({mount:$('nose-lab-mount'),video,getContext:()=>({fresh:mode==='camera'&&phase==='running'&&found&&lastResultAt>0&&performance.now()-lastResultAt<600})});
+const noseLab=new NoseLab({mount:$('nose-lab-mount'),video,getContext:()=>({mode,ready:mode==='camera'&&phase==='running',fresh:mode==='camera'&&phase==='running'&&found&&lastResultAt>0&&performance.now()-lastResultAt<600})});
+for(const model of recognitionModels)$('recognition-model').add(new Option(model.label,model.id));
+function selectRecognitionModel(id){
+  const model=recognitionModel(id);$('recognition-model').value=model.id;$('recognition-description').textContent=model.description;noseLab.setEnabled(model.nose);
+}
+selectRecognitionModel('mediapipe');
 function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);$('status').setAttribute('role',error?'alert':'status');}
 function resetMetrics(){lastMetrics=performance.now();resultCount=0;renderCount=0;samples=[];$('metric-track').textContent='—';$('metric-infer').textContent='—';$('metric-render').textContent='—';$('metric-time').textContent='00:00';}
 function updateNoseDiagnostics(){
@@ -36,7 +42,7 @@ function updateUI(){
   calibration.sync();
 }
 function release(){
-  noseLab.stop('先开启摄像头并保持正脸，再开启实验。');
+  noseLab.stop('开启摄像头并保持正脸后，将自动使用所选识别方案。');
   generation++;tracker?.stop();tracker=null;if(stream)for(const track of stream.getTracks()){track.onended=null;track.stop();}
   stream=null;video.pause();video.srcObject=null;found=false;raw=neutral();target=neutral();noseCurrent=[null,null];nosePeak=[null,null];engineName='';lastResultAt=0;$('camera-size').textContent='—';calibration.cancel('摄像头已停止，本次校准未保存。');
 }
@@ -83,6 +89,7 @@ document.querySelectorAll('[data-avatar]').forEach(button=>button.addEventListen
 $('demo-action').addEventListener('change',()=>{if(mode==='demo')startedAt=performance.now();});
 for(const id of ['device','resolution'])$(id).addEventListener('change',()=>{if(mode==='camera')void startCamera();});
 $('rate').addEventListener('change',()=>{if(tracker)tracker.rate=Number($('rate').value);});
+$('recognition-model').addEventListener('change',event=>selectRecognitionModel(event.target.value));
 $('gain').addEventListener('input',event=>{gain=Number(event.target.value);$('gain-value').textContent=gain.toFixed(1)+'×';});
 $('smoothing').addEventListener('input',event=>{smoothing=Number(event.target.value);$('smoothing-value').textContent=smoothing===0?'关闭':smoothing<.3?'轻微':smoothing<.6?'适中':'较强';});
 $('mirror').addEventListener('change',event=>{mirror=event.target.checked;updateUI();});navigator.mediaDevices?.addEventListener('devicechange',refreshDevices);void refreshDevices();window.addEventListener('pagehide',()=>release());
@@ -100,7 +107,7 @@ function paint(now){
 requestAnimationFrame(paint);
 if(document.modelContext?.registerTool){
   const lifecycle=new AbortController();const register=tool=>{try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}};
-  register({name:'read_face_lab_status',description:'Read current character, input mode and visible metrics. Does not activate the camera.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>({mode,phase,avatar:kind,faceDetected:found,engine:engineName,trackingHz:$('metric-track').textContent,inferenceMs:$('metric-infer').textContent,renderFps:$('metric-render').textContent,status:$('status').textContent})});
+  register({name:'read_face_lab_status',description:'Read current character, input mode and visible metrics. Does not activate the camera.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>({mode,phase,recognitionModel:$('recognition-model').value,noseModelState:noseLab.failed?'error':noseLab.loading?'loading':noseLab.active?'running':noseLab.enabled?'waiting':'off',avatar:kind,faceDetected:found,engine:engineName,trackingHz:$('metric-track').textContent,inferenceMs:$('metric-infer').textContent,renderFps:$('metric-render').textContent,status:$('status').textContent})});
   register({name:'set_face_lab_avatar',description:'Switch the displayed character or abstract shape without accessing the camera.',inputSchema:{type:'object',properties:{avatar:{type:'string',enum:Object.keys(names)}},required:['avatar'],additionalProperties:false},execute:async input=>{if(!input||!Object.hasOwn(names,input.avatar)||Object.keys(input).some(k=>k!=='avatar'))throw Error('Unknown avatar');await setAvatar(input.avatar);return {avatar:kind};}});
   register({name:'set_face_lab_demo',description:'Start or stop labeled simulated face movements. Starting demo releases any active camera.',inputSchema:{type:'object',properties:{enabled:{type:'boolean'}},required:['enabled'],additionalProperties:false},execute:input=>{if(!input||typeof input.enabled!=='boolean'||Object.keys(input).some(k=>k!=='enabled'))throw Error('enabled must be boolean');setDemo(input.enabled);return {mode};}});
   window.addEventListener('pagehide',()=>lifecycle.abort());

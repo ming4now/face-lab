@@ -27,6 +27,7 @@
     </section>
     <aside class="settings" aria-label="测试设置">
       <div class="settings-heading"><h2>开始测试</h2><span>01 / CAMERA</span></div>
+      <div class="model-choice"><label class="field">识别模型<select id="recognition-model" aria-describedby="recognition-description"></select></label><p id="recognition-description" class="nose-help"></p></div>
       <label class="field">摄像头<select id="device"><option value="">默认摄像头</option></select></label>
       <div class="field-pair"><label class="field">采集清晰度<select id="resolution"><option value="480">480p · 推荐</option><option value="720">720p</option><option value="360">360p · 省电</option></select></label><label class="field">识别频率上限<select id="rate"><option value="30" selected>30 次 / 秒</option><option value="24">24 次 / 秒</option><option value="15">15 次 / 秒</option></select></label></div>
       <button id="start" class="primary" type="button">开启摄像头</button><button id="demo" class="secondary" type="button">先看演示动作</button>
