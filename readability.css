@@ -14,3 +14,5 @@
 .shape-guide b{font-weight:500;color:#d4e8d4;margin-left:6px}
 .demo-controls{margin:2px 0 12px;padding:12px;border:1px solid #745e3e;border-radius:9px;background:#29271f}
 @media(max-width:570px){.avatar-groups{flex-basis:100%}.stage-toolbar>.badge{margin-left:auto}.avatar-row{gap:3px}.group-label{width:43px;font-size:10px}.avatar-tabs{gap:2px}.avatar-tab{padding:8px 7px}.shape-guide{padding:12px 16px;gap:7px 16px}.demo-controls{grid-column:1/-1}}
+
+.nose-diagnostics{grid-column:1/-1;margin:12px 0 0;padding-top:12px;border-top:1px solid var(--border);font-size:12px;min-width:0}.nose-diagnostics p{font-size:12px;line-height:1.65;margin:10px 0;color:var(--muted)}.nose-readings{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1fr);gap:7px 6px;align-items:center}.nose-readings>span:not(:nth-child(3n+1)),.nose-readings output{text-align:right}.nose-readings output{font-family:ui-monospace,monospace;font-size:11px;font-variant-numeric:tabular-nums;color:var(--accent);white-space:nowrap}

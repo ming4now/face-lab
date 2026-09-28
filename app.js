@@ -1,4 +1,4 @@
-import {neutral,smoothState,demoState,expressionValues,cameraConstraints,cameraError,clamp} from './core.js';
+import {neutral,smoothState,demoState,expressionValues,cameraConstraints,cameraError,clamp,formatNoseScore,formatNosePercent} from './core.js';
 import {Avatar2D} from './avatar2d.js';
 import {Tracker} from './tracker.js';
 import {isShape,isThreeDimensional} from './shape-motion.js';
@@ -9,11 +9,20 @@ const hints={jelly:'二维软体 · 用表情揉动一团软糖',polygon:'二维
 const bars=labels.map(label=>{const row=document.createElement('div');row.className='expression-line';row.innerHTML=`<span class="expression-label">${label}</span><div class="expression-track"><div class="expression-fill"></div></div><span class="expression-number">—</span>`;$('expression-list').append(row);return {fill:row.querySelector('.expression-fill'),number:row.querySelector('.expression-number')};});
 let mode='idle',phase='idle',kind='finger',generation=0,avatarGeneration=0,stream=null,tracker=null,avatar3d=null,avatar3dPromise=null;
 let raw=neutral(),target=neutral(),display=neutral(),gain=1.3,smoothing=.35,mirror=true,found=false;
+let noseCurrent=[null,null],nosePeak=[null,null];
 let startedAt=0,lastFrame=performance.now(),lastMetrics=lastFrame,lastMeter=0,lastPaint=0,renderCount=0,resultCount=0,samples=[],engineName='',lastResultAt=0;
 const placeholder='<span class="camera-icon" aria-hidden="true">◎</span><p>接上摄像头，准备见面</p><small>开始后可选择内置或外接设备</small>';
 const calibration=new CalibrationController({mount:$('calibration-mount'),getContext:()=>({ready:mode==='camera'&&phase==='running',found,fresh:lastResultAt>0&&performance.now()-lastResultAt<800,cameraId:stream?.getVideoTracks()[0]?.getSettings()?.deviceId??'',stream,mirror}),onChange:()=>{if(mode==='camera')target=found?calibration.apply(raw):neutral();}});
 function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);$('status').setAttribute('role',error?'alert':'status');}
 function resetMetrics(){lastMetrics=performance.now();resultCount=0;renderCount=0;samples=[];$('metric-track').textContent='—';$('metric-infer').textContent='—';$('metric-render').textContent='—';$('metric-time').textContent='00:00';}
+function updateNoseDiagnostics(){
+  const live=mode==='camera'&&phase==='running'&&found;
+  for(const [i,side] of ['left','right'].entries()){
+    $('nose-raw-'+side).textContent=live?formatNoseScore(noseCurrent[i]):'—';
+    $('nose-peak-'+side).textContent=Number.isFinite(nosePeak[i])?formatNoseScore(nosePeak[i]):'—';
+  }
+  $('nose-status').textContent=mode==='demo'?'演示动作不包含皱鼻，请开启摄像头测试。':mode!=='camera'?'开启摄像头后，可检查模型的原始皱鼻输出。':!live?'等待清晰的人脸画面…':noseCurrent.some(value=>value===null)?'模型未提供完整的左右皱鼻值。':'已收到模型数值。请比较放松和皱鼻时的变化；微小波动也可能来自噪声。';
+}
 function updateUI(){
   const camera=mode==='camera';$('start').textContent=camera?(phase==='loading'?'取消启动':'停止摄像头'):'开启摄像头';$('start').classList.toggle('running',camera);
   $('demo').textContent=mode==='demo'?'结束演示动作':'先看演示动作';
@@ -26,7 +35,7 @@ function updateUI(){
 }
 function release(){
   generation++;tracker?.stop();tracker=null;if(stream)for(const track of stream.getTracks()){track.onended=null;track.stop();}
-  stream=null;video.pause();video.srcObject=null;found=false;raw=neutral();target=neutral();engineName='';lastResultAt=0;$('camera-size').textContent='—';calibration.cancel('摄像头已停止，本次校准未保存。');
+  stream=null;video.pause();video.srcObject=null;found=false;raw=neutral();target=neutral();noseCurrent=[null,null];nosePeak=[null,null];engineName='';lastResultAt=0;$('camera-size').textContent='—';calibration.cancel('摄像头已停止，本次校准未保存。');
 }
 function stop(message='摄像头已关闭。可以切换设备后重新开始。'){release();mode='idle';phase='idle';$('camera-placeholder').innerHTML=placeholder;resetMetrics();updateUI();status(message);}
 async function refreshDevices(){
@@ -45,7 +54,7 @@ async function startCamera(){
     const active=new Tracker(video,{
       onProgress:message=>{if(ticket===generation)status(message);},
       onFatal:message=>{if(ticket===generation){stop();status(message,true);}},
-      onResult:result=>{if(ticket!==generation)return;found=result.found;raw={blend:result.blend,pose:result.pose};lastResultAt=performance.now();calibration.receive(result,lastResultAt);target=found?calibration.apply(raw):neutral();resultCount++;samples.push(result.inferenceMs);if(samples.length>30)samples.shift();$('tracking-status').textContent=found?'已跟踪到人脸':'请将脸移入画面';$('tracking-status').style.color=found?'var(--accent)':'#ffc977';}
+      onResult:result=>{if(ticket!==generation)return;found=result.found;raw={blend:result.blend,pose:result.pose};noseCurrent=found?(result.noseScores??[null,null]):[null,null];noseCurrent.forEach((value,i)=>{if(Number.isFinite(value))nosePeak[i]=Math.max(nosePeak[i]??0,value);});lastResultAt=performance.now();calibration.receive(result,lastResultAt);target=found?calibration.apply(raw):neutral();resultCount++;samples.push(result.inferenceMs);if(samples.length>30)samples.shift();$('tracking-status').textContent=found?'已跟踪到人脸':'请将脸移入画面';$('tracking-status').style.color=found?'var(--accent)':'#ffc977';}
     });
     tracker=active;tracker.rate=Number($('rate').value);const engine=await active.start();if(ticket!==generation)return;
     engineName=engine;startedAt=performance.now();phase='running';resetMetrics();updateUI();status('正在跟踪。可直接切换角色、设备或动作表现。');
@@ -80,7 +89,7 @@ function paint(now){
   smoothState(display,target,dt,smoothing);
   calibration.paint(display,{gain,mirror});
   if(mode!=='idle'||now-lastPaint>80){const options={kind,gain,mirror};if(isThreeDimensional(kind))avatar3d?.render(display,options);else avatar2d.draw(display,options);lastPaint=now;if(mode!=='idle'&&(!isThreeDimensional(kind)||avatar3d))renderCount++;}
-  if(now-lastMeter>100){expressionValues(display.blend).forEach((value,i)=>{bars[i].fill.style.width=(clamp(value)*100).toFixed(1)+'%';bars[i].number.textContent=mode==='idle'?'—':i>=6?(clamp(value)*100).toFixed(1):Math.round(clamp(value)*100);});lastMeter=now;}
+  if(now-lastMeter>100){expressionValues(display.blend).forEach((value,i)=>{if(i>=6)value=mode==='camera'&&found?noseCurrent[i-6]:null;bars[i].fill.style.width=(clamp(value)*100).toFixed(1)+'%';bars[i].number.textContent=mode==='idle'?'—':i>=6?formatNosePercent(value):Math.round(clamp(value)*100);});updateNoseDiagnostics();lastMeter=now;}
   if(now-lastMetrics>=1000){const duration=(now-lastMetrics)/1000;if(mode!=='idle'){$('metric-render').textContent=String(Math.round(renderCount/duration));if(mode==='camera'&&phase==='running'){$('metric-track').textContent=(resultCount/duration).toFixed(1);$('metric-infer').textContent=samples.length?(samples.reduce((a,b)=>a+b,0)/samples.length).toFixed(1):'—';}if(phase==='running'){const seconds=Math.floor((now-startedAt)/1000);$('metric-time').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');}}renderCount=0;resultCount=0;lastMetrics=now;}
   requestAnimationFrame(paint);
 }

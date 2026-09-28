@@ -1,13 +1,19 @@
 export const clamp=(x,min=0,max=1)=>Math.max(min,Math.min(max,Number.isFinite(x)?x:0));
 export const blendKeys=['jawOpen','mouthSmileLeft','mouthSmileRight','eyeBlinkLeft','eyeBlinkRight','eyeWideLeft','eyeWideRight','browInnerUp','browOuterUpLeft','browOuterUpRight','browDownLeft','browDownRight','mouthPucker','mouthFunnel','mouthFrownLeft','mouthFrownRight','eyeLookInLeft','eyeLookInRight','eyeLookOutLeft','eyeLookOutRight','eyeLookUpLeft','eyeLookUpRight','eyeLookDownLeft','eyeLookDownRight','noseSneerLeft','noseSneerRight'];
 export const neutral=()=>({blend:Object.fromEntries(blendKeys.map(k=>[k,0])),pose:{pitch:0,yaw:0,roll:0}});
+// Keep missing model outputs distinct from a measured zero. These values bypass
+// calibration, smoothing and avatar gain so weak model responses stay inspectable.
+export function readNoseScores(categories=[]){return ['noseSneerLeft','noseSneerRight'].map(key=>{const value=categories.find(x=>x.categoryName===key)?.score;return Number.isFinite(value)&&value>=0&&value<=1?value:null;});}
+export function formatNoseScore(value){return !Number.isFinite(value)?'未提供':value===0?'0':value<.0001?value.toExponential(2):value.toFixed(5);}
+export function formatNosePercent(value){return !Number.isFinite(value)?'—':value>0&&value<.001?'<0.1':(value*100).toFixed(1);}
 export function parseResult(result){
-  if(!result.faceLandmarks?.length)return {found:false,...neutral()};
+  if(!result.faceLandmarks?.length)return {found:false,...neutral(),noseScores:[null,null]};
   const state=neutral();
-  for(const x of result.faceBlendshapes?.[0]?.categories??[])state.blend[x.categoryName]=clamp(x.score);
+  const categories=result.faceBlendshapes?.[0]?.categories??[];
+  for(const x of categories)state.blend[x.categoryName]=clamp(x.score);
   const m=result.facialTransformationMatrixes?.[0]?.data;
   if(m?.length===16){state.pose.pitch=clamp(Math.asin(-clamp(m[9],-1,1)),-.65,.65);state.pose.yaw=clamp(Math.atan2(m[8],m[10]),-.85,.85);state.pose.roll=clamp(Math.atan2(m[1],m[5]),-.65,.65);}
-  return {found:true,...state};
+  return {found:true,...state,noseScores:readNoseScores(categories)};
 }
 export function smoothState(current,target,dt,smoothing){
   const alpha=smoothing<=0?1:1-Math.exp(-clamp(dt,0,250)/(8+smoothing*140));
