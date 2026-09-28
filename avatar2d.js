@@ -1,6 +1,7 @@
 import {clamp} from './core.js';
 import {createHeadProjection} from './head-projection.js';
 import {drawShape2D} from './shapes2d.js';
+import {drawFinger} from './finger-avatar.js';
 
 export class Avatar2D{
   constructor(canvas){this.canvas=canvas;this.ctx=canvas.getContext('2d');this.width=0;this.height=0;this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(canvas);this.resize();}
@@ -9,6 +10,7 @@ export class Avatar2D{
     const c=this.ctx,w=this.width,h=this.height;if(!w||!h)return;
     c.setTransform(this.dpr,0,0,this.dpr,0,0);c.clearRect(0,0,w,h);
     if(kind==='jelly'||kind==='polygon'){drawShape2D(c,w,h,state,{kind,gain,mirror});return;}
+    if(kind==='finger'){drawFinger(c,w,h,state,{gain,mirror});return;}
     const b=state.blend,v=k=>clamp((b[k]??0)*gain),smile=(v('mouthSmileLeft')+v('mouthSmileRight'))/2,open=v('jawOpen'),pucker=v('mouthPucker'),brow=Math.max(v('browInnerUp'),v('browOuterUpLeft'),v('browOuterUpRight')),frown=(v('mouthFrownLeft')+v('mouthFrownRight'))/2;
     const view=createHeadProjection(state.pose,mirror),frog=kind==='frog',surface=frog?{radiusX:132,radiusY:125,depth:92}:{radiusX:125,radiusY:140,depth:96};
     const at=(frame,draw)=>{if(frame.opacity<=0)return;c.save();c.globalAlpha*=frame.opacity;c.transform(frame.a,frame.b,frame.c,frame.d,frame.x,frame.y);draw();c.restore();};
